@@ -1,2 +1,4 @@
 /client/node_modules
+/client/public_key.pem
+/client/private_key.pem
 /server/node_modules
