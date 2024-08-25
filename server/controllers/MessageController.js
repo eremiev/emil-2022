@@ -17,6 +17,16 @@ class MessageController {
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   }
+
+  static validateMessage(req, res) {
+    const { message } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    return res.status(200).json({ message: 'Message is valid' });
+  }
 }
 
 module.exports = MessageController;
