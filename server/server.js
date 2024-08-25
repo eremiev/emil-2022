@@ -12,3 +12,32 @@
 // ● Server should respond with verification findings
 // ● No authentication required for this endpoint
 // ● Totally fine to write logic expecting only a single authenticated client and public key to exist
+
+
+const express = require('express');
+const passwordAndSaltStorage = require('./stores/keyAndPasswordStorage');
+const PasswordManager = require('./services/PasswordManager');
+const routes = require('./routes/index');
+const app = express();
+const PORT = 8081;
+
+// Accept the password as a command-line argument
+const password = process.argv[2] || null;
+
+if (!password) {
+  console.error('Error: Password is required as a command-line argument.');
+  process.exit(1);
+}
+
+const salt = PasswordManager.generateSalt();
+passwordAndSaltStorage.saveSalt(salt);
+const hashedPassword = PasswordManager.hashPassword(password, salt);
+passwordAndSaltStorage.savePassword(hashedPassword);
+
+app.use(express.json());
+
+app.use('/api', routes);
+
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+});

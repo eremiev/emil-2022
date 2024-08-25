@@ -61,14 +61,14 @@ async function sendPublicKey(password) {
         await fs.promises.access(filePath, fs.constants.F_OK);
         const fileData = await fs.promises.readFile(filePath);
         const postData = {
-            password,
             file: fileData.toString('base64'),
         };
 
-        const response = await axios.post('http://localhost:8081', postData, {
+        const response = await axios.post('http://localhost:8081/api/store-public-key', postData, {
             headers: {
                 'Content-Type': 'application/x-pem-file',
                 'Content-Length': fileData.length,
+                'x-password': password,
             },
         });
 
@@ -81,7 +81,7 @@ async function sendPublicKey(password) {
         if (error.code === 'ENOENT') {
             console.error('File does not exist.');
         } else {
-            console.error('Error:', error.message);
+            console.error('Error:', error.response.data.error || error.message);
         }
     }
 }
