@@ -1,19 +1,7 @@
-// Client
-// Should be a javascript file ‘client.js’ that we can call with different arguments via CLI.
-// ● If you want to split out some functionality into separate files for organization, that is fine. However, all functionality should be
-// exposed from the ‘client.js’ file
-// Capabilities
-// 1. Generate an asymmetric keypair and store it for later use
-// ● No specific curve or type required, so long as it can meet the other requirements
-// 2. Submit the public key to the server via a password-authenticated http request
-// 3. Use the private key to sign an arbitrary message provided via CLI arguments, and then output the message and signature
-// back to the terminal
-// 4. Submit a message + signature combo to the server to verify its authenticity via an http request
-
-const axios = require('axios');
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
+const {post} = require('axios');
+const {generateKeyPairSync, createPrivateKey, createSign} = require('crypto');
+const {writeFileSync, promises, constants} = require('fs');
+const {join} = require('path');
 
 /**
  * Generate an asymmetric keypair and store it
@@ -37,12 +25,12 @@ function generateKeys(password = null) {
     }
   };
 
-  const {publicKey, privateKey} = crypto.generateKeyPairSync('rsa', keyOptions);
+  const {publicKey, privateKey} = generateKeyPairSync('rsa', keyOptions);
 
-  const publicKeyPath = path.join(__dirname, 'public_key.pem');
-  const privateKeyPath = path.join(__dirname, 'private_key.pem');
-  fs.writeFileSync(publicKeyPath, publicKey);
-  fs.writeFileSync(privateKeyPath, privateKey);
+  const publicKeyPath = join(__dirname, 'public_key.pem');
+  const privateKeyPath = join(__dirname, 'private_key.pem');
+  writeFileSync(publicKeyPath, publicKey);
+  writeFileSync(privateKeyPath, privateKey);
   console.log('Keys generated successfully!');
 }
 
@@ -52,14 +40,14 @@ function generateKeys(password = null) {
  */
 async function getKeys() {
   try {
-    const publicKeyPath = path.join(__dirname, 'public_key.pem');
-    const privateKeyPath = path.join(__dirname, 'private_key.pem');
+    const publicKeyPath = join(__dirname, 'public_key.pem');
+    const privateKeyPath = join(__dirname, 'private_key.pem');
 
-    await fs.promises.access(publicKeyPath, fs.constants.F_OK);
-    const publicKey = await fs.promises.readFile(publicKeyPath, 'utf8');
+    await promises.access(publicKeyPath, constants.F_OK);
+    const publicKey = await promises.readFile(publicKeyPath, 'utf8');
 
-    await fs.promises.access(privateKeyPath, fs.constants.F_OK);
-    const privateKey = await fs.promises.readFile(privateKeyPath, 'utf8');
+    await promises.access(privateKeyPath, constants.F_OK);
+    const privateKey = await promises.readFile(privateKeyPath, 'utf8');
 
     return {
       publicKey,
@@ -87,13 +75,13 @@ async function signMessage(message, password = null) {
       console.error('No message provided');
     }
 
-    const privateKey = crypto.createPrivateKey({
+    const privateKey = createPrivateKey({
       key: encryptedPrivateKey,
       format: 'pem',
       ...(password && {passphrase: password})
     });
 
-    const sign = crypto.createSign('SHA256');
+    const sign = createSign('SHA256');
     sign.update(message);
     sign.end();
     const signature = sign.sign(privateKey, 'hex');
@@ -113,17 +101,12 @@ async function signMessage(message, password = null) {
  */
 async function sendPublicKey(password) {
   if (!password) {
-    console.log('Password is required.');
+    console.log('Server auth password is required.');
     return;
   }
   try {
     const {publicKey} = await getKeys();
-
-    const postData = {
-      publicKey: publicKey.toString('base64')
-    };
-
-    const response = await axios.post('http://localhost:8081/api/store-public-key',
+    const response = await post('http://localhost:8081/api/store-public-key',
       {
         publicKey
       },
@@ -140,7 +123,7 @@ async function sendPublicKey(password) {
       console.log(`File upload failed with status: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error('Error:', error.response.data.error || error.message);
   }
 }
 
@@ -156,7 +139,7 @@ async function verifyMessage(message, signature) {
     return;
   }
   try {
-    const response = await axios.post('http://localhost:8081/api/verify-message',
+    const response = await post('http://localhost:8081/api/verify-message',
       {
         message,
         signature
@@ -197,7 +180,7 @@ async function verifyMessage(message, signature) {
       break;
     case '--verify-message':
     case '-vm':
-      await verifyMessage(arg, arg2);
+      verifyMessage(arg, arg2);
       break;
     case '--get-keys':
       const keys = await getKeys();
@@ -205,8 +188,29 @@ async function verifyMessage(message, signature) {
       break;
     case '--help':
     case '-h':
-      console.log('--generate-keys {password}');
-      console.log('--gk {password}');
+      console.log(
+        'Generate Keys: \n' +
+        '--generate-keys\n' +
+        '-gk\n' +
+        '\n' +
+        'Send Public Key (Server password required):\n' +
+        '--send-public-key {password}\n' +
+        '-spk {password}\n' +
+        '\n' +
+        'Sign Message (privateKeyPassword optional):\n' +
+        '--sign-message {message} {privateKeyPassword}\n' +
+        '-sm {message} {privateKeyPassword}\n' +
+        '\n' +
+        'Verify Message (message and signature required)\n' +
+        '--verify-message {message} {signature}\n' +
+        '-vm  {message} {signature}\n' +
+        '\n' +
+        'List Keys\n' +
+        '--get-keys\n' +
+        '\n' +
+        'Help\n' +
+        '--help\n' +
+        '-h\n');
       break;
     default:
       console.log('Invalid command');

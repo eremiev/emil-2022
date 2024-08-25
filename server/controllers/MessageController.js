@@ -1,5 +1,5 @@
-const crypto = require('crypto');
 const keyStorage = require('../stores/keyAndPasswordStorage');
+const KeyManager = require('../services/KeyManager');
 
 class MessageController {
   static storePublicKey(req, res) {
@@ -20,22 +20,19 @@ class MessageController {
 
   static verifyMessage(req, res) {
     const {message, signature} = req.body;
-
     if (!message || !signature) {
+
       return res.status(400).json({error: 'Message and Signature are required'});
     }
-
     try {
-      const decodedPublicKey = keyStorage.getPublicKey();
-      const verify = crypto.createVerify('SHA256');
-      verify.update(message);
-      verify.end();
-      const isValid = verify.verify(decodedPublicKey, signature, 'hex');
-      const validation = isValid ? 'Message is valid' : 'Message is not valid';
-      return res.status(200).json({message: validation});
+      const isValid = KeyManager.verifyMessage(message, signature);
+      const result = isValid ? 'Message is valid' : 'Message is not valid';
+
+      return res.status(200).json({message: result});
     } catch (error) {
       console.error('Error verifying the signature:', error.message);
-      return false;
+
+      return res.status(500).json({error: 'Internal Server Error'});
     }
   }
 }

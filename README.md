@@ -22,10 +22,10 @@ client.js --spk {password}
 
 ** Sign message.***
 Required: message
-Optional: password
+Optional: privateKeyPassword
 ```
-client.js --sign-message {message} {password}
-client.js --sm {message} {password}
+client.js --sign-message {message} {privateKeyPassword}
+client.js --sm {message} {privateKeyPassword}
 ```
 
 ** Verify message.***
@@ -52,6 +52,11 @@ client.js -h
 Use password by default.
 ```
 npm run start
+```
+
+If you want custom password run:
+```
+node server.js {password}
 ```
 
 ### Endpoints:
