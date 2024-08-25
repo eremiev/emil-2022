@@ -2,6 +2,10 @@ const keyStorage = require('../stores/keyAndPasswordStorage');
 const KeyManager = require('../services/KeyManager');
 
 class MessageController {
+
+  /**
+   * Store public Key
+   */
   static storePublicKey(req, res) {
     const {publicKey} = req.body;
     try {
@@ -18,6 +22,9 @@ class MessageController {
     }
   }
 
+  /**
+   * Verify message
+   */
   static verifyMessage(req, res) {
     const {message, signature} = req.body;
     if (!message || !signature) {
