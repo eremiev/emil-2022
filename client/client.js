@@ -66,14 +66,13 @@ async function sendPublicKey(password) {
 
         const response = await axios.post('http://localhost:8081/api/store-public-key', postData, {
             headers: {
-                'Content-Type': 'application/x-pem-file',
-                'Content-Length': fileData.length,
+                'Content-Type': 'application/json',
                 'x-password': password,
             },
         });
 
         if (response.status === 200) {
-            console.log('File uploaded successfully:', response.data);
+            console.log(response.data.message);
         } else {
             console.log(`File upload failed with status: ${response.status}`);
         }

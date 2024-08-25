@@ -19,3 +19,11 @@ Required: password
 client.js --send-public-key {password}
 client.js --spk {password}
 ```
+
+## Server
+
+** Run the server***
+Use password by default.
+```
+npm run start
+```

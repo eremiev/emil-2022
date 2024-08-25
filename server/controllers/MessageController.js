@@ -3,9 +3,8 @@ const keyStorage = require('../stores/keyAndPasswordStorage');
 class MessageController {
   static storePublicKey(req, res) {
     const { file } = req.body;
-    try{
+    try {
       if (!file) {
-
         return res.status(400).json({ error: 'Public key is required.' });
       }
     const decodedFileData = Buffer.from(file, 'base64').toString('utf-8');
