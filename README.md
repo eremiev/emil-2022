@@ -28,6 +28,24 @@ client.js --sign-message {message} {password}
 client.js --sm {message} {password}
 ```
 
+** Verify message.***
+Required: message
+```
+client.js --verify-message {message}
+client.js --vm {message}
+```
+
+** Get keys.***
+```
+client.js --get-keys
+```
+
+** Help. Look for all commands***
+```
+client.js --help
+client.js -h
+```
+
 ## Server
 
 ** Run the server***
@@ -45,5 +63,5 @@ Authenticated:
 
 Non authenticated:
 ```
-'/api/validate-message'
+'/api/verify-message'
 ```

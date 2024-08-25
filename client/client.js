@@ -21,85 +21,89 @@ const path = require('path');
  * @returns {void} store locally the keys
  */
 function generateKeys(password = null) {
-    const keyOptions = {
-        modulusLength: 2048,
-        publicKeyEncoding: {
-            type: 'pkcs1',
-            format: 'pem',
-        },
-        privateKeyEncoding: {
-            type: 'pkcs8',
-            format: 'pem',
-            ...(password && {
-                cipher: 'aes-256-cbc',
-                passphrase: password,
-            }),
-        },
-    };
-
-    const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', keyOptions);
-
-    const publicKeyPath = path.join(__dirname, 'public_key.pem');
-    const privateKeyPath = path.join(__dirname, 'private_key.pem');
-    fs.writeFileSync(publicKeyPath, publicKey);
-    fs.writeFileSync(privateKeyPath, privateKey);
-    console.log('Keys generated successfully!');
-}
-
-async function getKeys() {
-    try {
-        const publicKeyPath = path.join(__dirname, 'public_key.pem');
-        const privateKeyPath = path.join(__dirname, 'private_key.pem');
-
-        await fs.promises.access(publicKeyPath, fs.constants.F_OK);
-        const publicKey = await fs.promises.readFile(publicKeyPath, 'utf8');
-
-        await fs.promises.access(privateKeyPath, fs.constants.F_OK);
-        const privateKey = await fs.promises.readFile(privateKeyPath, 'utf8');
-
-        return {
-            publicKey,
-            privateKey
-        };
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            throw new Error('Keys does not exist.')
-        } else {
-            throw new Error(error.message)
-        }
+  const keyOptions = {
+    modulusLength: 2048,
+    publicKeyEncoding: {
+      type: 'pkcs1',
+      format: 'pem'
+    },
+    privateKeyEncoding: {
+      type: 'pkcs8',
+      format: 'pem',
+      ...(password && {
+        cipher: 'aes-256-cbc',
+        passphrase: password
+      })
     }
+  };
+
+  const {publicKey, privateKey} = crypto.generateKeyPairSync('rsa', keyOptions);
+
+  const publicKeyPath = path.join(__dirname, 'public_key.pem');
+  const privateKeyPath = path.join(__dirname, 'private_key.pem');
+  fs.writeFileSync(publicKeyPath, publicKey);
+  fs.writeFileSync(privateKeyPath, privateKey);
+  console.log('Keys generated successfully!');
 }
 
 /**
- * Generate an asymmetric keypair and store it
+ * Get stored keys
+ * @returns {object} public and private key
+ */
+async function getKeys() {
+  try {
+    const publicKeyPath = path.join(__dirname, 'public_key.pem');
+    const privateKeyPath = path.join(__dirname, 'private_key.pem');
+
+    await fs.promises.access(publicKeyPath, fs.constants.F_OK);
+    const publicKey = await fs.promises.readFile(publicKeyPath, 'utf8');
+
+    await fs.promises.access(privateKeyPath, fs.constants.F_OK);
+    const privateKey = await fs.promises.readFile(privateKeyPath, 'utf8');
+
+    return {
+      publicKey,
+      privateKey
+    };
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      throw new Error('Keys does not exist.');
+    } else {
+      throw new Error(error.message);
+    }
+  }
+}
+
+/**
+ * Sign a message
  * @param {string} message
  * @param {string} password
  * @returns {object} output the message and signature
  */
 async function signMessage(message, password = null) {
-    try {
-        const { privateKey: encryptedPrivateKey  } = await getKeys();
-        if (!message) {
-            console.error('No message provided');
-        }
-
-        const privateKey = crypto.createPrivateKey({
-            key: encryptedPrivateKey,
-            format: 'pem',
-            ...(password && { passphrase: password })
-        });
-
-        const sign = crypto.createSign('SHA256');
-        sign.update(message);
-        sign.end();
-        const signature = sign.sign(privateKey, 'hex');
-        console.log({
-            message,
-            signature,
-        });
-    } catch (error) {
-        console.error('Error signing the message:', error.message);
+  try {
+    const {privateKey: encryptedPrivateKey} = await getKeys();
+    if (!message) {
+      console.error('No message provided');
     }
+
+    const privateKey = crypto.createPrivateKey({
+      key: encryptedPrivateKey,
+      format: 'pem',
+      ...(password && {passphrase: password})
+    });
+
+    const sign = crypto.createSign('SHA256');
+    sign.update(message);
+    sign.end();
+    const signature = sign.sign(privateKey, 'hex');
+    console.log({
+      message,
+      signature
+    });
+  } catch (error) {
+    console.error('Error signing the message:', error.message);
+  }
 }
 
 /**
@@ -108,58 +112,104 @@ async function signMessage(message, password = null) {
  * @returns {void} store locally the keys
  */
 async function sendPublicKey(password) {
-    if (!password) {
-        console.log('Password is required.');
-        return;
-    }
-    try {
-        const { publicKey } = await getKeys();
-        const postData = {
-            file: publicKey.toString('base64'),
-        };
+  if (!password) {
+    console.log('Password is required.');
+    return;
+  }
+  try {
+    const {publicKey} = await getKeys();
 
-        const response = await axios.post('http://localhost:8081/api/store-public-key', postData, {
-            headers: {
-                'Content-Type': 'application/json',
-                'x-password': password,
-            },
-        });
+    const postData = {
+      publicKey: publicKey.toString('base64')
+    };
 
-        if (response.status === 200) {
-            console.log(response.data.message);
-        } else {
-            console.log(`File upload failed with status: ${response.status}`);
+    const response = await axios.post('http://localhost:8081/api/store-public-key',
+      {
+        publicKey
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-password': password
         }
-    } catch (error) {
-            console.error('Error:', error.message);
+      });
+
+    if (response.status === 200) {
+      console.log(response.data.message);
+    } else {
+      console.log(`File upload failed with status: ${response.status}`);
     }
+  } catch (error) {
+    console.error('Error:', error.message);
+  }
+}
+
+/**
+ * Verify the message with the server
+ * @param {string} message
+ * @param {string} signature
+ * @returns {string} verified result from the server
+ */
+async function verifyMessage(message, signature) {
+  if (!message || !signature) {
+    console.log('Message and Signature are required.');
+    return;
+  }
+  try {
+    const response = await axios.post('http://localhost:8081/api/verify-message',
+      {
+        message,
+        signature
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+    if (response.status === 200) {
+      console.log(response.data.message);
+    } else {
+      console.log(`Request failed with status: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error:', error.message);
+  }
 }
 
 // Parse command-line arguments
 (async () => {
-    const [command, arg,arg2] = process.argv.slice(2);
+  const [command, arg, arg2] = process.argv.slice(2);
 
-    switch (command) {
-        case '--generate-keys':
-        case '-gk':
-            const password = arg || null;
-            generateKeys(password);
-            break;
-        case '--send-public-key':
-        case '-spk':
-            await sendPublicKey(arg);
-            break;
-        case '--sign-message':
-        case '-sm':
-            await signMessage(arg, arg2);
-            break;
-        case '--help':
-        case '-h':
-            console.log('--generate-keys {password}');
-            console.log('--gk {password}');
-            break;
-        default:
-            console.log('Invalid command');
-    }
+  switch (command) {
+    case '--generate-keys':
+    case '-gk':
+      const password = arg || null;
+      generateKeys(password);
+      break;
+    case '--send-public-key':
+    case '-spk':
+      await sendPublicKey(arg);
+      break;
+    case '--sign-message':
+    case '-sm':
+      await signMessage(arg, arg2);
+      break;
+    case '--verify-message':
+    case '-vm':
+      await verifyMessage(arg, arg2);
+      break;
+    case '--get-keys':
+      const keys = await getKeys();
+      console.log(keys);
+      break;
+    case '--help':
+    case '-h':
+      console.log('--generate-keys {password}');
+      console.log('--gk {password}');
+      break;
+    default:
+      console.log('Invalid command');
+  }
 })();
 
