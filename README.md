@@ -5,7 +5,7 @@ Bitpay - Task
 
 ### Available commands:
 
-** Generate asymmetric keypair.***
+* Generate asymmetric keypair.
 Optional: password
 
 ```
@@ -13,14 +13,14 @@ client.js --generate-keys {password}
 client.js --gk {password}
 ```
 
-** Submit the public key to the server via a password-authenticated http request.***
+* Submit the public key to the server via a password-authenticated http request.
 Required: password
 ```
 client.js --send-public-key {password}
 client.js --spk {password}
 ```
 
-** Sign message.***
+* Sign message.
 Required: message
 Optional: privateKeyPassword
 ```
@@ -28,19 +28,19 @@ client.js --sign-message {message} {privateKeyPassword}
 client.js --sm {message} {privateKeyPassword}
 ```
 
-** Verify message.***
+* Verify message.
 Required: message
 ```
 client.js --verify-message {message}
 client.js --vm {message}
 ```
 
-** Get keys.***
+* Get keys.
 ```
 client.js --get-keys
 ```
 
-** Help. Look for all commands***
+* Help. Look for all commands
 ```
 client.js --help
 client.js -h
@@ -48,7 +48,7 @@ client.js -h
 
 ## Server
 
-** Run the server***
+* Run the server
 Use password by default.
 ```
 npm run start
